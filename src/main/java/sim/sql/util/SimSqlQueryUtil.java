@@ -91,11 +91,28 @@ public final class SimSqlQueryUtil {
     }
 
     private static <T> List<T> orderBy(OrderBy orderBy, List<T> data) {
+        if (orderBy.getOrderBy().isEmpty()) {
+            return data;
+        }
         final Map<String, Field> fieldMap = FieldCache.fieldsOf(CURRENT_CLASS.get());
-        //orderBy.getOrderBy().stream().map(OrderBy.SortColumn::getColumn).map(fieldMap::get).
+        List<OrderBy.SortColumn> sortColumns = orderBy.getOrderBy();
+        List<Field> fields = sortColumns.stream().map(OrderBy.SortColumn::getColumn).map(fieldMap::get).collect(Collectors.toList());
         try {
             final Comparator<T> comparator = (o, p) -> {
-                return 1;
+                try {
+                    for (int i = 0; i < sortColumns.size(); i++) {
+                        final int compareResult = compareField(o, p, fields.get(i));
+                        if (compareResult != 0) {
+                            OrderBy.Sort sort = sortColumns.get(i).getSort();
+                            return OrderBy.Sort.DESC.equals(sort)
+                                    ? negate(compareResult)
+                                    : compareResult;
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                return 0;
             };
             return data.stream()
                     .sorted(comparator)
@@ -103,6 +120,17 @@ public final class SimSqlQueryUtil {
         } catch (Exception e) {
             throw new RuntimeException("排序出错，请检查字段正确性", e);
         }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static <T> int compareField(T o, T p, Field field) throws IllegalAccessException {
+        Object fieldOfO = field.get(o);
+        Object fieldOfP = field.get(p);
+        if (null == fieldOfO || null == fieldOfP) {
+            // null视为最小
+            return fieldOfO == fieldOfP ? 0 : (null == fieldOfO ? -1 : 1);
+        }
+        return ((Comparable) fieldOfO).compareTo(fieldOfP);
     }
 
     private static <T> List<T> groupBy(GroupBy groupBy, List<T> data) {
@@ -115,6 +143,13 @@ public final class SimSqlQueryUtil {
 
     private static <T> List<T> limit(Limit limit, List<T> result) {
         return null;
+    }
+
+    /**
+     * 对compareTo结果取负
+     */
+    private static Integer negate(int a) {
+        return a == Integer.MIN_VALUE ? 1 : -a;
     }
 
     /**
