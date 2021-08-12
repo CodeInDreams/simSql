@@ -124,8 +124,8 @@ public final class SimSqlQueryUtil {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static <T> int compareField(T o, T p, Field field) throws IllegalAccessException {
-        Object fieldOfO = field.get(o);
-        Object fieldOfP = field.get(p);
+        final Object fieldOfO = field.get(o);
+        final Object fieldOfP = field.get(p);
         if (null == fieldOfO || null == fieldOfP) {
             // null视为最小
             return fieldOfO == fieldOfP ? 0 : (null == fieldOfO ? -1 : 1);
@@ -138,11 +138,36 @@ public final class SimSqlQueryUtil {
         if (columnList.isEmpty()) {
             return data;
         }
-        return null;
+        final Map<String, Field> fieldMap = FieldCache.fieldsOf(CURRENT_CLASS.get());
+        final List<Field> fields = groupBy.getGroupBy().stream()
+                .map(fieldMap::get)
+                .peek(o -> {
+                    if (null == o) {
+                        throw new RuntimeException("group by字段无效");
+                    }
+                }).collect(Collectors.toList());
+        final Map<List<Object>, T> uniqueMap = new LinkedHashMap<>(data.size() / (1 << 3));
+        try {
+            for (T element : data) {
+                final List<Object> key = new ArrayList<>(fields.size());
+                for (Field field : fields) {
+                    key.add(field.get(element));
+                }
+                uniqueMap.putIfAbsent(key, element);
+            }
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return new ArrayList<>(uniqueMap.values());
     }
 
-    private static <T> List<T> limit(Limit limit, List<T> result) {
-        return null;
+    private static <T> List<T> limit(Limit limit, List<T> data) {
+        if (null == limit.getLimit()) {
+            return data;
+        }
+        final int fromIndex = null == limit.getOffset() ? 0 : limit.getOffset();
+        final int toIndex = Math.min(fromIndex + limit.getLimit(), data.size());
+        return data.subList(fromIndex, toIndex);
     }
 
     /**
