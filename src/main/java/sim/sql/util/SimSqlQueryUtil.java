@@ -51,7 +51,13 @@ public final class SimSqlQueryUtil {
         if (CollectionUtils.isEmpty(data)) {
             return new ArrayList<>();
         }
-        return query((List) data, where, orderBy, groupBy, limit, data.get(0).getClass());
+        final Class klass = data.get(0).getClass();
+        return query(castList(data, klass), where, orderBy, groupBy, limit, klass);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> List<T> castList(List<Object> data, Class<T> klass) {
+        return (List<T>) data;
     }
 
     /**

@@ -3,8 +3,10 @@ package sim.sql.keyword;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import sim.sql.condition.ColumnCondition;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -63,8 +65,9 @@ public class Column {
     /**
      * in
      */
-    public ColumnCondition in(List<Object> range) {
-        return ColumnCondition.of(name, range::contains);
+    public ColumnCondition in(Collection<Object> range) {
+        final Set<Object> set = new HashSet<>(range);
+        return ColumnCondition.of(name, set::contains);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -107,7 +110,7 @@ public class Column {
     /**
      * like %keyword%
      */
-    public <T> ColumnCondition likeInclude(@NonNull String keyword) {
+    public ColumnCondition likeInclude(@NonNull String keyword) {
         return ColumnCondition.of(name, o -> {
             if (!(o instanceof String)) {
                 return false;
@@ -119,7 +122,7 @@ public class Column {
     /**
      * like keyword%
      */
-    public <T> ColumnCondition likeLeft(@NonNull String keyword) {
+    public ColumnCondition likeLeft(@NonNull String keyword) {
         return ColumnCondition.of(name, o -> {
             if (!(o instanceof String)) {
                 return false;
@@ -131,7 +134,7 @@ public class Column {
     /**
      * like %keyword
      */
-    public <T> ColumnCondition likeRight(@NonNull String keyword) {
+    public ColumnCondition likeRight(@NonNull String keyword) {
         return ColumnCondition.of(name, o -> {
             if (!(o instanceof String)) {
                 return false;
